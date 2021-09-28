@@ -1,4 +1,4 @@
-from csv import reader
+# from csv import reader
 from collections import defaultdict
 from itertools import chain, combinations
 
@@ -18,18 +18,44 @@ class Node:
         for child in list(self.children.values()):
             child.display(ind+1)
 
-def getFromFile(fname):
-    itemSetList = []
-    frequency = []
+# def getFromFile(fname):
+#     itemSetList = []
+#     frequency = []
     
-    with open(fname, 'r') as file:
-        csv_reader = reader(file)
-        for line in csv_reader:
-            line = list(filter(None, line))
-            itemSetList.append(line)
-            frequency.append(1)
+#     with open(fname, 'r') as file:
+#         csv_reader = reader(file)
+#         for line in csv_reader:
+#             line = list(filter(None, line))
+#             itemSetList.append(line)
+#             frequency.append(1)
 
-    return itemSetList, frequency
+#     return itemSetList, frequency
+
+def getItemSetList(transaksi):
+    itemSetList = []
+    for trx in transaksi:
+        itemSetList.append(trx['judul_buku'])
+    return itemSetList
+
+def Itemset(transaksi, frequency, minSup):
+    frequencyItems = defaultdict(int)
+    orderedItems = []
+    # Counting frequency and create header table
+    for idx, itemSet in enumerate(transaksi):
+        for item in itemSet['judul_buku']:
+            frequencyItems[item] += frequency[idx]
+    # Deleting items below minSup
+    frequencyItems = dict((item, sup) for item, sup in frequencyItems.items() if sup >= minSup)
+    frequencyItems = {k: v for k, v in sorted(frequencyItems.items(), key=lambda item: item[1], reverse=True)}
+    for idx, itemSet in enumerate(transaksi):
+        itemSetOrder = [item for item in itemSet['judul_buku'] if item in frequencyItems]
+        itemSetOrder.sort(key=lambda item: frequencyItems[item], reverse=True)
+        orderedItems.append([itemSet['no_faktur'], itemSetOrder])
+    if(len(frequencyItems) == 0):
+        return None, None
+    
+    return frequencyItems, orderedItems
+
 
 def constructTree(itemSetList, frequency, minSup):
     headerTable = defaultdict(int)
@@ -46,6 +72,7 @@ def constructTree(itemSetList, frequency, minSup):
     # HeaderTable column [Item: [frequency, headNode]]
     for item in headerTable:
         headerTable[item] = [headerTable[item], None]
+    
 
     # Init Null head node
     fpTree = Node('Null', 1, None)
@@ -136,22 +163,18 @@ def getSupport(testSet, itemSetList):
 
 def associationRule(freqItemSet, itemSetList, minConf):
     rules = []
-    # print(freqItemSet)
-    # print("==========================================================")
-    # print(itemSetList)
-    # print("==========================================================")
-    # print(minConf)
-    # print("==========================support================================")
+    freqItem = []
     for itemSet in freqItemSet:
         subsets = powerset(itemSet)
         itemSetSup = getSupport(itemSet, itemSetList)
-        # if(len(itemSet) > 1):
-        #     print("==", itemSet ,"== ", itemSetSup)
+        if(len(itemSet) > 1):
+            freqItem.append({"frequentPattern": list(itemSet), "frequency": itemSetSup})
         for s in subsets:
-            confidence = float(itemSetSup / getSupport(s, itemSetList))
+            confidence = float(itemSetSup / getSupport(s, itemSetList))*100
+            support = itemSetSup/len(itemSetList)*100
             if(confidence > minConf):
-                rules.append([set(s), set(itemSet.difference(s)), confidence])
-    return rules
+                rules.append({"antecedent": list(s), "consequent": list(itemSet.difference(s)), "confidence": confidence, "support": support})
+    return freqItem, rules
 
 def getFrequencyFromList(itemSetList):
     frequency = [1 for i in range(len(itemSetList))]

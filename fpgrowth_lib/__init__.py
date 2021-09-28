@@ -1,2 +1,2 @@
-from fpgrowth_py.fpgrowth import *
-from fpgrowth_py.utils import *
+from fpgrowth_lib.fpgrowth import *
+from fpgrowth_lib.utils import *

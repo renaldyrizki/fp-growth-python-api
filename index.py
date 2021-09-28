@@ -1,6 +1,5 @@
 from bottle import request, route, run, response
 import json
-from types import SimpleNamespace
 from fpgrowth_lib import fpgrowth as fpgrowth_library
 
 
@@ -16,13 +15,13 @@ def hello():
 
 @route('/getFPG', method='POST')
 def getFPG():
-    PythonDict = request.body.read()
-    transaksi = json.loads(PythonDict, object_hook=lambda d: SimpleNamespace(**d))
+    transaksi = json.load(request.body)
 
-    minSupRatio= float(transaksi.support)
-    minConf= float(transaksi.confidence)
+    minSupRatio= float(transaksi['support'])
+    minConf= float(transaksi['confidence'])
+    dataTransaksi= transaksi['data']
 
-    freqItemset, orderedItemset, freqPattern, rules = fpgrowth_library(transaksi.data, minSupRatio, minConf)
+    freqItemset, orderedItemset, freqPattern, rules = fpgrowth_library(dataTransaksi, minSupRatio, minConf)
     
     data = {
         # "item": itemSetList,
@@ -35,4 +34,5 @@ def getFPG():
     response.content_type = 'application/json'
     return data
 
+# run(host='localhost', port=2000, debug=True)
 run(host='localhost', port=2000, debug=True, reloader=True)
